@@ -194,15 +194,20 @@ Returns **Slider**:
 | `Name` | string | `"Keybind"` | Label |
 | `Flag` | string | | Config flag |
 | `Default` | KeyCode / string | | Initial key |
-| `Mode` | `"Toggle"` / `"Hold"` | `"Toggle"` | Activation mode |
+| `Mode` | `"Toggle"` / `"Hold"` / `"Always"` | `"Toggle"` | Activation mode |
 | `NoMode` | boolean | `false` | Hide mode menu (right-click) |
 | `SyncState` / `SyncToggleState` | boolean | `false` | Sync with host toggle |
 | `Callback` | `function(state)` | | On press state change |
 | `OnPress` | function | | Extra press hook |
 | `ChangedCallback` | `function(key, mode)` | | When key/mode changes |
 
+**Modes**
+- `Toggle` — press to turn on/off
+- `Hold` — active while key is held
+- `Always` — always on (`GetState()` is always `true`)
+
 Left-click: listen for key (`Esc` cancel, `Backspace` clear).  
-Right-click: Hold / Toggle (unless `NoMode`).
+Right-click: Always / Hold / Toggle (unless `NoMode`).
 
 Returns **KeyPicker**:
 
@@ -210,9 +215,9 @@ Returns **KeyPicker**:
 |--------|-------------|
 | `Set` / `SetValue(value, invoke?)` | KeyCode, name, or `{Key, Mode}` |
 | `Get` / `GetValue()` | Current KeyCode or nil |
-| `GetMode()` | `"Hold"` or `"Toggle"` |
+| `GetMode()` | `"Always"`, `"Hold"`, or `"Toggle"` |
 | `SetMode(mode)` | Set mode |
-| `GetState()` | Current pressed/toggled state |
+| `GetState()` | Current state (`true` when Always) |
 
 ### `AddTextbox(Options)`
 | Option | Type | Default | Description |
