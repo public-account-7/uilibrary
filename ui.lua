@@ -728,6 +728,7 @@ function UiLibrary:LoadTheme(name)
 
 	local applied = ApplyThemeData(data)
 
+	-- Push loaded colors into colorpicker widgets (no callback re-entry)
 	SyncThemePickers(self, false)
 
 	if self.Window and self.Window.RefreshTheme then
@@ -836,16 +837,25 @@ function UiLibrary:CreateWindow(config)
 
 	local GuiParent
 
-	if type(gethui) == "function" then
-		local ok, result = pcall(gethui)
-		GuiParent = ok and result or nil
+	if gethui then
+		GuiParent = gethui()
+	else
+		GuiParent = game:GetService("CoreGui")
 	end
 
 	local Gui = Create("ScreenGui", {
 		Name = config.Name or "UiLibrary",
 		ResetOnSpawn = false,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-	}, GuiParent or Player:WaitForChild("PlayerGui"))
+	})
+
+	local parentOk, parentErr = pcall(function()
+		Gui.Parent = GuiParent
+	end)
+
+	if not parentOk then
+		error("UiLibrary: failed to parent UI (" .. tostring(parentErr) .. ")")
+	end
 
 	Window.Gui = Gui
 
@@ -1328,10 +1338,18 @@ function UiLibrary:CreateWindow(config)
 			Flag = Host.Flag .. "_KeyPicker"
 		end
 
+		local function ResolveMode(Value)
+			if Value == "Hold" or Value == "Always" then
+				return Value
+			end
+
+			return "Toggle"
+		end
+
 		local Key = ResolveKey(Options.Default)
-		local Mode = Options.Mode == "Hold" and "Hold" or "Toggle"
+		local Mode = ResolveMode(Options.Mode)
 		local Sync = Options.SyncState == true or Options.SyncToggleState == true
-		local State = false
+		local State = Mode == "Always"
 		local Picker = { Flag = Flag }
 		local Entry = { Key = Key }
 
@@ -1367,6 +1385,10 @@ function UiLibrary:CreateWindow(config)
 		end
 
 		local function SetState(NewState)
+			if Mode == "Always" then
+				NewState = true
+			end
+
 			if State == NewState then
 				return
 			end
@@ -1387,6 +1409,16 @@ function UiLibrary:CreateWindow(config)
 		end
 
 		function Entry.Press()
+			if Mode == "Always" then
+				SetState(true)
+
+				if Options.OnPress then
+					Options.OnPress()
+				end
+
+				return
+			end
+
 			if Sync and Host then
 				local current = Host.Get()
 				State = current
@@ -1415,19 +1447,29 @@ function UiLibrary:CreateWindow(config)
 		end
 
 		function Picker.SyncFromHost(Value)
-			if Sync then
+			if Sync and Mode ~= "Always" then
 				State = Value == true
 			end
 		end
 
 		local function Apply(NewKey, NewMode, Invoke)
+			NewMode = ResolveMode(NewMode)
+
 			if Mode == "Hold" and State and (NewKey ~= Key or NewMode ~= Mode) then
 				SetState(false)
 			end
 
+			local ModeChanged = NewMode ~= Mode
+
 			Key = NewKey
 			Mode = NewMode
 			Entry.Key = NewKey
+
+			if Mode == "Always" then
+				SetState(true)
+			elseif ModeChanged and Mode ~= "Hold" then
+				-- leaving Always / switching to Toggle keeps current state unless was Always
+			end
 
 			Display()
 			Save()
@@ -1439,13 +1481,19 @@ function UiLibrary:CreateWindow(config)
 
 		local function Set(Value, Invoke)
 			if type(Value) == "table" then
-				Apply(ResolveKey(Value.Key), Value.Mode == "Hold" and "Hold" or "Toggle", Invoke)
+				Apply(ResolveKey(Value.Key), ResolveMode(Value.Mode), Invoke)
 			else
 				Apply(ResolveKey(Value), Mode, Invoke)
 			end
 		end
 
 		Bind(Flag, Set, { Key = Key and Key.Name or "None", Mode = Mode })
+
+		if Mode == "Always" and Sync and Host then
+			task.defer(function()
+				SetState(true)
+			end)
+		end
 
 		Box.MouseButton1Click:Connect(function()
 			if Window.CancelListen then
@@ -1480,10 +1528,18 @@ function UiLibrary:CreateWindow(config)
 		end)
 
 		if not Options.NoMode then
-			Box.MouseButton2Click:Connect(function()
-				ShowPopup(Box, { "Hold", "Toggle" }, Mode, function(Choice)
+			local function OpenModeMenu()
+				ShowPopup(Box, { "Always", "Hold", "Toggle" }, Mode, function(Choice)
 					Apply(Key, Choice)
-				end, nil, { Width = 84, AlignRight = true, Compact = true })
+				end, nil, { Width = 96, AlignRight = true })
+			end
+
+			Box.MouseButton2Click:Connect(OpenModeMenu)
+
+			Box.InputBegan:Connect(function(Input)
+				if Input.UserInputType == Enum.UserInputType.MouseButton2 then
+					OpenModeMenu()
+				end
 			end)
 		end
 
@@ -1492,9 +1548,15 @@ function UiLibrary:CreateWindow(config)
 		Picker.Get = Method(Picker, function() return Key end)
 		Picker.GetValue = Picker.Get
 		Picker.GetMode = Method(Picker, function() return Mode end)
-		Picker.GetState = Method(Picker, function() return State end)
+		Picker.GetState = Method(Picker, function()
+			if Mode == "Always" then
+				return true
+			end
+
+			return State
+		end)
 		Picker.SetMode = Method(Picker, function(NewMode)
-			Apply(Key, NewMode == "Hold" and "Hold" or "Toggle")
+			Apply(Key, ResolveMode(NewMode))
 		end)
 
 		return Picker
@@ -3268,6 +3330,7 @@ function UiLibrary:SetConfigTab(Tab, Options)
 		Callback = BindColor("Danger", "UI_DangerColor")
 	})
 
+	-- Surfaces: backgrounds & structure
 	Surfaces:AddColorpicker({
 		Name = "Window Background",
 		Flag = "UI_WindowColor",
@@ -3324,6 +3387,7 @@ function UiLibrary:SetConfigTab(Tab, Options)
 		Callback = BindColor("Popup", "UI_PopupColor")
 	})
 
+	-- Controls: text + interactive elements
 	Controls:AddColorpicker({
 		Name = "Primary Text",
 		Flag = "UI_TextColor",
