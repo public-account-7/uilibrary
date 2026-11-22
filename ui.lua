@@ -46,7 +46,7 @@ local Colors = {
 }
 
 local Alpha = {
-	Window = 0.1,
+	Window = 0,
 	Card = 0.5,
 	Bar = 0.4,
 	Row = 0.4,
@@ -1070,12 +1070,14 @@ function UiLibrary:CreateWindow(config)
 		Window.Drag = function(moved)
 			local delta = moved.Position - start
 
-			Main.Position = UDim2.new(
-				origin.X.Scale,
-				origin.X.Offset + delta.X,
-				origin.Y.Scale,
-				origin.Y.Offset + delta.Y
-			)
+			Tween(Main, Anim.Drag, {
+				Position = UDim2.new(
+					origin.X.Scale,
+					origin.X.Offset + delta.X,
+					origin.Y.Scale,
+					origin.Y.Offset + delta.Y
+				)
+			})
 		end
 	end)
 
@@ -1419,12 +1421,12 @@ function UiLibrary:CreateWindow(config)
 				return
 			end
 
-			if Sync and Host then
+			if Mode == "Hold" then
+				SetState(true)
+			elseif Sync and Host then
 				local current = Host.Get()
 				State = current
 				SetState(not current)
-			elseif Mode == "Hold" then
-				SetState(true)
 			else
 				SetState(not State)
 			end
@@ -1436,13 +1438,7 @@ function UiLibrary:CreateWindow(config)
 
 		function Entry.Release()
 			if Mode == "Hold" then
-				if Sync and Host then
-					local current = Host.Get()
-					State = current
-					SetState(not current)
-				else
-					SetState(false)
-				end
+				SetState(false)
 			end
 		end
 
@@ -2104,7 +2100,9 @@ function UiLibrary:CreateWindow(config)
 
 					local Multi = Options.Multi == true
 					local Flag = Options.Flag
-					local CloseHandle
+					local Open = false
+					local ItemHeight = 28
+					local MaxListHeight = 140
 
 					local function ResolveChoices(Source)
 						if type(Source) == "function" then
@@ -2146,9 +2144,30 @@ function UiLibrary:CreateWindow(config)
 						end
 					end
 
-					local Frame = Row(36, "TextButton")
+					local Holder = Create("Frame", {
+						Size = UDim2.new(1, 0, 0, 36),
+						BackgroundTransparency = 1,
+						BorderSizePixel = 0,
+						ClipsDescendants = true
+					}, SectionContent)
 
-					local Text = Label(Frame, Options.Name or "Dropdown", TextSize, Colors.Label)
+					local Header = Create("TextButton", {
+						Size = UDim2.new(1, 0, 0, 36),
+						BackgroundColor3 = Colors.Row,
+						BackgroundTransparency = Alpha.Row,
+						BorderSizePixel = 0,
+						Text = "",
+						AutoButtonColor = false
+					}, Holder)
+
+					Corner(Header, 7)
+					Hover(Header, "BackgroundColor3", Colors.Row, Colors.Hover)
+
+					Theme(function()
+						Header.BackgroundColor3 = Colors.Row
+					end)
+
+					local Text = Label(Header, Options.Name or "Dropdown", TextSize, Colors.Label)
 					Text.Position = UDim2.fromOffset(12, 0)
 					Text.Size = UDim2.new(0.5, 0, 1, 0)
 					Text.TextTruncate = Enum.TextTruncate.AtEnd
@@ -2165,15 +2184,49 @@ function UiLibrary:CreateWindow(config)
 						return Selected ~= nil and tostring(Selected) or "Select"
 					end
 
-					local ValueLabel = Label(Frame, DisplayText(), TextSize, Colors.Text)
+					local ValueLabel = Label(Header, DisplayText(), TextSize, Colors.Text)
 					ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
 					ValueLabel.TextTruncate = Enum.TextTruncate.AtEnd
 					ValueLabel.Position = UDim2.new(0.4, 0, 0, 0)
 					ValueLabel.Size = UDim2.new(0.6, -34, 1, 0)
 
-					local SetArrow = Chevron(Frame, UDim2.new(1, -19, 0.5, 0))
+					local SetArrow = Chevron(Header, UDim2.new(1, -19, 0.5, 0))
 
-					Hover(Frame, "BackgroundColor3", Colors.Row, Colors.Hover)
+					local List = Create("ScrollingFrame", {
+						Position = UDim2.fromOffset(0, 40),
+						Size = UDim2.new(1, 0, 0, 0),
+						BackgroundColor3 = Colors.Row,
+						BackgroundTransparency = Alpha.Row,
+						BorderSizePixel = 0,
+						ScrollBarThickness = 2,
+						ScrollBarImageColor3 = Colors.Accent,
+						CanvasSize = UDim2.new(0, 0, 0, 0),
+						AutomaticCanvasSize = Enum.AutomaticSize.Y,
+						ClipsDescendants = true
+					}, Holder)
+
+					Corner(List, 7)
+					Layout(List, 2)
+					Padding(List, 4, 4, 4, 4)
+
+					Theme(function()
+						List.BackgroundColor3 = Colors.Row
+						List.ScrollBarImageColor3 = Colors.Accent
+					end)
+
+					local function ListTargetHeight()
+						local count = #Choices
+						local full = count * ItemHeight + math.max(count - 1, 0) * 2 + 8
+						return math.clamp(full, 0, MaxListHeight)
+					end
+
+					local function IsSelected(Choice)
+						if Multi then
+							return table.find(Selected, Choice) ~= nil
+						end
+
+						return Choice == Selected
+					end
 
 					local function Emit(Invoke)
 						ValueLabel.Text = DisplayText()
@@ -2193,51 +2246,122 @@ function UiLibrary:CreateWindow(config)
 						end
 					end
 
-					local function ChooseSingle(Value, Invoke)
-						Selected = Value
-						Emit(Invoke)
-					end
-
-					local function ToggleMulti(Value, Active, Invoke)
-						local Index = table.find(Selected, Value)
-
-						if Active then
-							if not Index then
-								table.insert(Selected, Value)
+					local function RebuildItems()
+						for _, Child in ipairs(List:GetChildren()) do
+							if Child:IsA("TextButton") then
+								Child:Destroy()
 							end
-						elseif Index then
-							table.remove(Selected, Index)
 						end
 
-						Emit(Invoke)
+						for _, Choice in ipairs(Choices) do
+							local Active = IsSelected(Choice)
+
+							local Item = Create("TextButton", {
+								Size = UDim2.new(1, 0, 0, ItemHeight - 2),
+								BackgroundColor3 = Active and Colors.Pill or Colors.Row,
+								BackgroundTransparency = Active and 0 or 1,
+								BorderSizePixel = 0,
+								Text = tostring(Choice),
+								Font = Fonts.Regular,
+								TextSize = 14,
+								TextColor3 = Active and Colors.Accent or Colors.Text,
+								TextXAlignment = Enum.TextXAlignment.Left,
+								AutoButtonColor = false
+							}, List)
+
+							Corner(Item, 5)
+							Padding(Item, 8)
+
+							Item.MouseEnter:Connect(function()
+								Tween(Item, Anim.Fast, {
+									BackgroundColor3 = Colors.Hover,
+									BackgroundTransparency = 0
+								})
+							end)
+
+							Item.MouseLeave:Connect(function()
+								local On = IsSelected(Choice)
+								Tween(Item, Anim.Fast, {
+									BackgroundColor3 = On and Colors.Pill or Colors.Row,
+									BackgroundTransparency = On and 0 or 1
+								})
+							end)
+
+							Item.MouseButton1Click:Connect(function()
+								if Multi then
+									local Index = table.find(Selected, Choice)
+
+									if Index then
+										table.remove(Selected, Index)
+									else
+										table.insert(Selected, Choice)
+									end
+
+									Emit(true)
+									RebuildItems()
+								else
+									Selected = Choice
+									Emit(true)
+									task.defer(CloseDropdown)
+								end
+							end)
+						end
 					end
 
 					local function CloseDropdown()
-						if CloseHandle then
-							CloseHandle()
-						end
-					end
-
-					Frame.MouseButton1Click:Connect(function()
-						if CloseHandle then
-							CloseDropdown()
+						if not Open then
 							return
 						end
 
-						CloseHandle = ShowPopup(Frame, Choices, Selected, function(Choice, Active)
-							if Multi then
-								ToggleMulti(Choice, Active, true)
-							else
-								ChooseSingle(Choice, true)
-							end
-						end, function()
-							CloseHandle = nil
-							SetArrow(Colors.Text, false)
-						end, {
-							Multi = Multi
+						Open = false
+
+						if Window.OpenDropdown == CloseDropdown then
+							Window.OpenDropdown = nil
+						end
+
+						SetArrow(Colors.Text, false)
+
+						Tween(List, Anim.Normal, {
+							Size = UDim2.new(1, 0, 0, 0)
 						})
 
+						Tween(Holder, Anim.Normal, {
+							Size = UDim2.new(1, 0, 0, 36)
+						})
+					end
+
+					local function OpenDropdown()
+						if Open then
+							return
+						end
+
+						if Window.OpenDropdown and Window.OpenDropdown ~= CloseDropdown then
+							Window.OpenDropdown()
+						end
+
+						Open = true
+						Window.OpenDropdown = CloseDropdown
+
+						RebuildItems()
 						SetArrow(Colors.Accent, true)
+
+						local height = ListTargetHeight()
+
+						Tween(List, Anim.Normal, {
+							Size = UDim2.new(1, 0, 0, height)
+						})
+
+						Tween(Holder, Anim.Normal, {
+							Size = UDim2.new(1, 0, 0, 40 + height)
+						})
+					end
+
+					Header.MouseButton1Click:Connect(function()
+						if Open then
+							CloseDropdown()
+						else
+							OpenDropdown()
+						end
 					end)
 
 					local function Set(Value, Invoke)
@@ -2255,11 +2379,24 @@ function UiLibrary:CreateWindow(config)
 							end
 
 							Emit(Invoke)
+
+							if Open then
+								RebuildItems()
+							end
 						elseif Value == nil then
 							Selected = nil
 							Emit(Invoke)
+
+							if Open then
+								RebuildItems()
+							end
 						elseif table.find(Choices, Value) then
-							ChooseSingle(Value, Invoke)
+							Selected = Value
+							Emit(Invoke)
+
+							if Open then
+								RebuildItems()
+							end
 						end
 					end
 
@@ -2269,8 +2406,6 @@ function UiLibrary:CreateWindow(config)
 						elseif NewChoices == nil and type(Options.Values) == "function" then
 							Choices = ResolveChoices(Options.Values)
 						end
-
-						CloseDropdown()
 
 						if Multi then
 							local Filtered = {}
@@ -2287,6 +2422,20 @@ function UiLibrary:CreateWindow(config)
 						end
 
 						Emit(false)
+
+						if Open then
+							local height = ListTargetHeight()
+
+							RebuildItems()
+
+							Tween(List, Anim.Normal, {
+								Size = UDim2.new(1, 0, 0, height)
+							})
+
+							Tween(Holder, Anim.Normal, {
+								Size = UDim2.new(1, 0, 0, 40 + height)
+							})
+						end
 					end
 
 					local Dropdown = {
