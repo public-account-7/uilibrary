@@ -1,4 +1,4 @@
---// booo
+--// booo 2.0
 local UiLibrary = {}
 UiLibrary.__index = UiLibrary
 UiLibrary.Flags = {}
@@ -1205,13 +1205,6 @@ function UiLibrary:CreateWindow(config)
 		}, Overlay)
 
 		Corner(PopupFrame, 7)
-
-		Glow(PopupFrame, {
-			Host = Overlay,
-			Expand = 28,
-			Transparency = 0.72,
-			Color = Colors.White
-		})
 
 		if Compact then
 			local Expanded = false
@@ -2848,13 +2841,6 @@ function UiLibrary:CreateWindow(config)
 						}, Overlay)
 
 						Corner(Popup, 8)
-
-						Glow(Popup, {
-							Host = Overlay,
-							Expand = 32,
-							Transparency = 0.7,
-							Color = Colors.White
-						})
 
 						local SV = Create("Frame", {
 							Position = UDim2.fromOffset(Pad, Pad),
