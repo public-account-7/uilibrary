@@ -3,7 +3,7 @@
 Roblox UI library with tabs, subtabs, sections, theming, configs, and themes.
 
 ```lua
-local UiLibrary = loadstring(readfile("UiLibrary.lua"))()
+local UiLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/public-account-7/uilibrary/refs/heads/main/ui.lua"))()
 ```
 
 ---
@@ -264,7 +264,7 @@ Second argument on setters: `invoke ~= false` fires the control callback.
 ## Hierarchy example
 
 ```lua
-local Library = loadstring(readfile("UiLibrary.lua"))()
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/public-account-7/uilibrary/refs/heads/main/ui.lua"))()
 Library:SetFolder("MyScript")
 
 local Window = Library:CreateWindow({
