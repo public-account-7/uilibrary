@@ -1,3 +1,4 @@
+--// booo
 local UiLibrary = {}
 UiLibrary.__index = UiLibrary
 UiLibrary.Flags = {}
@@ -194,6 +195,17 @@ local function Hover(object, property, off, on, condition)
 	end)
 end
 
+local function Stroke(parent, opts)
+	opts = opts or {}
+
+	return Create("UIStroke", {
+		Color = opts.Color or Colors.White,
+		Transparency = opts.Transparency == nil and 0.92 or opts.Transparency,
+		Thickness = opts.Thickness or 1,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	}, parent)
+end
+
 local function Button(parent, text)
 	local button = Create("TextButton", {
 		BackgroundColor3 = Colors.Row,
@@ -218,15 +230,6 @@ local function Button(parent, text)
 	end)
 
 	return button
-end
-
-local function Stroke(parent)
-	Create("UIStroke", {
-		Color = Colors.White,
-		Transparency = 0.9,
-		Thickness = 1,
-		ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	}, parent)
 end
 
 local function Chevron(parent, position)
@@ -876,7 +879,6 @@ function UiLibrary:CreateWindow(config)
 	}, Gui)
 
 	Corner(Main, 12)
-
 	Window.Main = Main
 
 	local Sheen = Create("Frame", {
@@ -888,8 +890,8 @@ function UiLibrary:CreateWindow(config)
 
 	Create("UIGradient", {
 		Transparency = NumberSequence.new({
-			NumberSequenceKeypoint.new(0, 0.92),
-			NumberSequenceKeypoint.new(0.45, 0.985),
+			NumberSequenceKeypoint.new(0, 0.9),
+			NumberSequenceKeypoint.new(0.4, 0.97),
 			NumberSequenceKeypoint.new(1, 1)
 		}),
 		Rotation = 45
@@ -1204,6 +1206,13 @@ function UiLibrary:CreateWindow(config)
 
 		Corner(PopupFrame, 7)
 
+		Glow(PopupFrame, {
+			Host = Overlay,
+			Expand = 28,
+			Transparency = 0.72,
+			Color = Colors.White
+		})
+
 		if Compact then
 			local Expanded = false
 
@@ -1373,7 +1382,6 @@ function UiLibrary:CreateWindow(config)
 		}, Parent)
 
 		Corner(Box, 6)
-		Stroke(Box)
 		Padding(Box, 4, 0, 4, 0)
 		Hover(Box, "BackgroundColor3", Colors.Pill, Colors.Hover)
 
@@ -2228,6 +2236,8 @@ function UiLibrary:CreateWindow(config)
 						return Choice == Selected
 					end
 
+					local CloseDropdown, OpenDropdown, RebuildItems
+
 					local function Emit(Invoke)
 						ValueLabel.Text = DisplayText()
 
@@ -2242,16 +2252,82 @@ function UiLibrary:CreateWindow(config)
 						Store(Flag, Payload)
 
 						if Invoke ~= false and Options.Callback then
-							Options.Callback(Payload)
+							pcall(Options.Callback, Payload)
 						end
 					end
 
-					local function RebuildItems()
+					CloseDropdown = function()
+						if not Open then
+							return
+						end
+
+						Open = false
+
+						if Window.OpenDropdown == CloseDropdown then
+							Window.OpenDropdown = nil
+						end
+
+						SetArrow(Colors.Text, false)
+
+						Tween(List, Anim.Normal, {
+							Size = UDim2.new(1, 0, 0, 0)
+						})
+
+						Tween(Holder, Anim.Normal, {
+							Size = UDim2.new(1, 0, 0, 36)
+						})
+					end
+
+					OpenDropdown = function()
+						if Open then
+							return
+						end
+
+						if Window.OpenDropdown and Window.OpenDropdown ~= CloseDropdown then
+							Window.OpenDropdown()
+						end
+
+						Open = true
+						Window.OpenDropdown = CloseDropdown
+
+						RebuildItems()
+						SetArrow(Colors.Accent, true)
+
+						local height = ListTargetHeight()
+
+						Tween(List, Anim.Normal, {
+							Size = UDim2.new(1, 0, 0, height)
+						})
+
+						Tween(Holder, Anim.Normal, {
+							Size = UDim2.new(1, 0, 0, 40 + height)
+						})
+					end
+
+					local ItemButtons = {}
+
+					local function PaintItems()
+						for Choice, Item in pairs(ItemButtons) do
+							if Item and Item.Parent then
+								local On = IsSelected(Choice)
+
+								Tween(Item, Anim.Fast, {
+									BackgroundColor3 = On and Colors.Pill or Colors.Row,
+									BackgroundTransparency = On and 0 or 1,
+									TextColor3 = On and Colors.Accent or Colors.Text
+								})
+							end
+						end
+					end
+
+					RebuildItems = function()
 						for _, Child in ipairs(List:GetChildren()) do
-							if Child:IsA("TextButton") then
+							if Child:IsA("GuiButton") then
 								Child:Destroy()
 							end
 						end
+
+						table.clear(ItemButtons)
 
 						for _, Choice in ipairs(Choices) do
 							local Active = IsSelected(Choice)
@@ -2266,11 +2342,14 @@ function UiLibrary:CreateWindow(config)
 								TextSize = 14,
 								TextColor3 = Active and Colors.Accent or Colors.Text,
 								TextXAlignment = Enum.TextXAlignment.Left,
-								AutoButtonColor = false
+								AutoButtonColor = false,
+								ZIndex = 2
 							}, List)
 
 							Corner(Item, 5)
 							Padding(Item, 8)
+
+							ItemButtons[Choice] = Item
 
 							Item.MouseEnter:Connect(function()
 								Tween(Item, Anim.Fast, {
@@ -2296,64 +2375,14 @@ function UiLibrary:CreateWindow(config)
 									else
 										table.insert(Selected, Choice)
 									end
-
-									Emit(true)
-									RebuildItems()
 								else
 									Selected = Choice
-									Emit(true)
-									task.defer(CloseDropdown)
 								end
+
+								Emit(true)
+								PaintItems()
 							end)
 						end
-					end
-
-					local function CloseDropdown()
-						if not Open then
-							return
-						end
-
-						Open = false
-
-						if Window.OpenDropdown == CloseDropdown then
-							Window.OpenDropdown = nil
-						end
-
-						SetArrow(Colors.Text, false)
-
-						Tween(List, Anim.Normal, {
-							Size = UDim2.new(1, 0, 0, 0)
-						})
-
-						Tween(Holder, Anim.Normal, {
-							Size = UDim2.new(1, 0, 0, 36)
-						})
-					end
-
-					local function OpenDropdown()
-						if Open then
-							return
-						end
-
-						if Window.OpenDropdown and Window.OpenDropdown ~= CloseDropdown then
-							Window.OpenDropdown()
-						end
-
-						Open = true
-						Window.OpenDropdown = CloseDropdown
-
-						RebuildItems()
-						SetArrow(Colors.Accent, true)
-
-						local height = ListTargetHeight()
-
-						Tween(List, Anim.Normal, {
-							Size = UDim2.new(1, 0, 0, height)
-						})
-
-						Tween(Holder, Anim.Normal, {
-							Size = UDim2.new(1, 0, 0, 40 + height)
-						})
 					end
 
 					Header.MouseButton1Click:Connect(function()
@@ -2381,21 +2410,21 @@ function UiLibrary:CreateWindow(config)
 							Emit(Invoke)
 
 							if Open then
-								RebuildItems()
+								PaintItems()
 							end
 						elseif Value == nil then
 							Selected = nil
 							Emit(Invoke)
 
 							if Open then
-								RebuildItems()
+								PaintItems()
 							end
 						elseif table.find(Choices, Value) then
 							Selected = Value
 							Emit(Invoke)
 
 							if Open then
-								RebuildItems()
+								PaintItems()
 							end
 						end
 					end
@@ -2648,7 +2677,6 @@ function UiLibrary:CreateWindow(config)
 					}, Frame)
 
 					Corner(Box, 6)
-					Stroke(Box)
 					Padding(Box, 8, 0, 8, 0)
 
 					local function Set(Value, Invoke)
@@ -2704,7 +2732,6 @@ function UiLibrary:CreateWindow(config)
 					}, Frame)
 
 					Corner(Swatch, 5)
-					Stroke(Swatch)
 					Hover(Frame, "BackgroundColor3", Colors.Row, Colors.Hover)
 
 					local function ApplyVisual()
@@ -2821,6 +2848,13 @@ function UiLibrary:CreateWindow(config)
 						}, Overlay)
 
 						Corner(Popup, 8)
+
+						Glow(Popup, {
+							Host = Overlay,
+							Expand = 32,
+							Transparency = 0.7,
+							Color = Colors.White
+						})
 
 						local SV = Create("Frame", {
 							Position = UDim2.fromOffset(Pad, Pad),
