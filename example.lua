@@ -1,5 +1,7 @@
 local UiLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/public-account-7/uilibrary/refs/heads/main/ui.lua"))()
 
+print("Icons ready:", UiLibrary.IconsReady)
+
 UiLibrary:SetFolder("UiLibrary_Example")
 
 local Window = UiLibrary:CreateWindow({
@@ -10,13 +12,13 @@ local Window = UiLibrary:CreateWindow({
 	ToggleKey = Enum.KeyCode.RightShift
 })
 
-local Main = Window:CreateTab("Main")
+local Main = Window:CreateTab("Main", "house")
 
-local Combat = Main:CreateSubtab("Combat")
-local Visuals = Main:CreateSubtab("Visuals")
-local Misc = Main:CreateSubtab("Misc")
+local Combat = Main:CreateSubtab("Combat", "sword")
+local Visuals = Main:CreateSubtab("Visuals", "eye")
+local Misc = Main:CreateSubtab("Misc", "wrench")
 
-local Aim = Combat:CreateSection("Aim Assist", "left")
+local Aim = Combat:CreateSection("Aim Assist", "left", "crosshair")
 
 Aim:AddToggle({
 	Name = "Enabled",
@@ -91,7 +93,7 @@ Aim:AddDropdown({
 	end
 })
 
-local Checks = Combat:CreateSection("Checks", "right")
+local Checks = Combat:CreateSection("Checks", "right", "shield-check")
 
 Checks:AddToggle({
 	Name = "Team Check",
@@ -144,7 +146,7 @@ Checks:AddColorpicker({
 	end
 })
 
-local ESP = Visuals:CreateSection("ESP", "left")
+local ESP = Visuals:CreateSection("ESP", "left", "scan-eye")
 
 ESP:AddToggle({
 	Name = "Box ESP",
@@ -200,7 +202,7 @@ ESP:AddColorpicker({
 	Default = Color3.fromRGB(110, 224, 150)
 })
 
-local World = Visuals:CreateSection("World", "right")
+local World = Visuals:CreateSection("World", "right", "globe")
 
 World:AddToggle({
 	Name = "Fullbright",
@@ -237,7 +239,7 @@ World:AddColorpicker({
 	Default = Color3.fromRGB(140, 140, 160)
 })
 
-local Player = Misc:CreateSection("Player", "left")
+local Player = Misc:CreateSection("Player", "left", "user")
 
 Player:AddToggle({
 	Name = "Speed",
@@ -291,7 +293,7 @@ Player:AddKeybind({
 	end
 })
 
-local Other = Misc:CreateSection("Other", "right")
+local Other = Misc:CreateSection("Other", "right", "settings-2")
 
 Other:AddTextbox({
 	Name = "Webhook",
@@ -314,35 +316,46 @@ Other:AddButton({
 	Name = "Copy JobId",
 	Callback = function()
 		print("JobId:", game.JobId)
+		UiLibrary:Notify("JobId", game.JobId, 3)
 	end
 }):AddButton({
 	Name = "Rejoin",
 	Callback = function()
-		print("Rejoin requested")
+		UiLibrary:Notify("Rejoin", "Rejoin requested", 3)
 	end
 })
 
 Other:AddButton({
 	Name = "Server Hop",
 	Callback = function()
-		print("Server hop")
+		UiLibrary:Notify("Server Hop", "Searching for a server...", 3)
 	end
 })
 
 Other:AddLabel("Tip: RightShift toggles the UI")
 Other:AddLabel("Right-click keybind boxes to switch Hold / Toggle")
 
-local PlayersTab = Window:CreateTab("Players")
-local ListSub = PlayersTab:CreateSubtab("List")
-local ActionsSub = PlayersTab:CreateSubtab("Actions")
+local PlayersTab = Window:CreateTab("Players", "users")
+local ListSub = PlayersTab:CreateSubtab("List", "list")
+local ActionsSub = PlayersTab:CreateSubtab("Actions", "zap")
 
-local TargetSec = ListSub:CreateSection("Target", "left")
-local InfoSec = ListSub:CreateSection("Info", "right")
+local TargetSec = ListSub:CreateSection("Target", "left", "target")
+local InfoSec = ListSub:CreateSection("Info", "right", "info")
 
-TargetSec:AddDropdown({
+local function PlayerNames()
+	local names = { "None" }
+
+	for _, plr in ipairs(game:GetService("Players"):GetPlayers()) do
+		table.insert(names, plr.Name)
+	end
+
+	return names
+end
+
+local PlayerDropdown = TargetSec:AddDropdown({
 	Name = "Player",
 	Flag = "Target_Player",
-	Options = { "None", "Player1", "Player2", "Player3" },
+	Values = PlayerNames,
 	Default = "None",
 	Callback = function(Value)
 		print("Target:", Value)
@@ -352,12 +365,13 @@ TargetSec:AddDropdown({
 TargetSec:AddButton({
 	Name = "Refresh Players",
 	Callback = function()
-		print("Refreshing player list")
+		PlayerDropdown.Refresh()
+		UiLibrary:Notify("Players", "List refreshed", 2)
 	end
 }):AddButton({
 	Name = "Spectate",
 	Callback = function()
-		print("Spectate target")
+		UiLibrary:Notify("Spectate", "Spectating " .. tostring(PlayerDropdown.Get()), 3)
 	end
 })
 
@@ -376,18 +390,18 @@ InfoSec:AddColorpicker({
 	Default = Color3.fromRGB(255, 170, 90)
 })
 
-local ActLeft = ActionsSub:CreateSection("Actions", "left")
-local ActRight = ActionsSub:CreateSection("Teleport", "right")
+local ActLeft = ActionsSub:CreateSection("Actions", "left", "mouse-pointer-click")
+local ActRight = ActionsSub:CreateSection("Teleport", "right", "map-pin")
 
 ActLeft:AddButton({
 	Name = "Focus Camera",
 	Callback = function()
-		print("Focus camera")
+		UiLibrary:Notify("Camera", "Focus camera", 2)
 	end
 }):AddButton({
 	Name = "Unfocus",
 	Callback = function()
-		print("Unfocus")
+		UiLibrary:Notify("Camera", "Unfocus", 2)
 	end
 })
 
@@ -405,7 +419,7 @@ ActLeft:AddToggle({
 ActRight:AddButton({
 	Name = "Teleport to Target",
 	Callback = function()
-		print("Teleport")
+		UiLibrary:Notify("Teleport", "Teleporting...", 2)
 	end
 })
 
@@ -419,10 +433,322 @@ ActRight:AddSlider({
 	Default = 3
 })
 
-local SettingsTab = Window:CreateTab("Settings")
-UiLibrary:SetConfigTab(SettingsTab, {
-	AutoLoad = true,
-	AutoLoadTheme = true
+local TestsTab = Window:CreateTab("Tests", "flask-conical")
+
+local NotifySub = TestsTab:CreateSubtab("Notify", "bell")
+local ApiSub = TestsTab:CreateSubtab("API", "code")
+local IconSub = TestsTab:CreateSubtab("Icons", "image")
+local PlainSub = TestsTab:CreateSubtab("No Icon")
+local LongSub = TestsTab:CreateSubtab("Long Subtab Name", "scroll-text")
+
+local NotifyLeft = NotifySub:CreateSection("Notifications", "left", "bell-ring")
+local NotifyRight = NotifySub:CreateSection("Position", "right", "move")
+
+NotifyLeft:AddButton({
+	Name = "Short (2s)",
+	Callback = function()
+		UiLibrary:Notify("Short", "Disappears in 2 seconds", 2)
+	end
+}):AddButton({
+	Name = "Default",
+	Callback = function()
+		UiLibrary:Notify("Default", "Uses the default timer")
+	end
 })
 
-print("UiLibrary example loaded")
+NotifyLeft:AddButton({
+	Name = "Title only",
+	Callback = function()
+		UiLibrary:Notify("Only a title", nil, 3)
+	end
+}):AddButton({
+	Name = "Text only",
+	Callback = function()
+		UiLibrary:Notify(nil, "Only body text, no title", 3)
+	end
+})
+
+NotifyLeft:AddButton({
+	Name = "Long text",
+	Callback = function()
+		UiLibrary:Notify(
+			"Long message",
+			"This notification has a lot of text so it has to wrap over several lines and the card must grow to fit all of it without cutting anything off.",
+			5
+		)
+	end
+})
+
+NotifyLeft:AddButton({
+	Name = "Persistent (click to close)",
+	Callback = function()
+		UiLibrary:Notify("Persistent", "Click this card to dismiss it", math.huge)
+	end
+})
+
+NotifyLeft:AddButton({
+	Name = "Spam x8 (stack limit)",
+	Callback = function()
+		for i = 1, 8 do
+			UiLibrary:Notify("Spam " .. i, "Stack test", 4)
+			task.wait(0.15)
+		end
+	end
+})
+
+NotifyLeft:AddButton({
+	Name = "Save 'example' config",
+	Callback = function()
+		local Ok, Message = UiLibrary:SaveConfig("example")
+		UiLibrary:Notify(Ok and "Config" or "Config error", Message, 3)
+	end
+}):AddButton({
+	Name = "Load 'example' config",
+	Callback = function()
+		local Ok, Message = UiLibrary:LoadConfig("example")
+		UiLibrary:Notify(Ok and "Config" or "Config error", Message, 3)
+	end
+})
+
+local function PickPosition(Name)
+	local Setter = UiLibrary.Setters["UI_NotifyPosition"]
+
+	if Setter then
+		Setter(Name, true)
+	else
+		UiLibrary:SetNotifyPosition(Name)
+		UiLibrary:Notify("Notifications", "Position set to " .. Name, 2)
+	end
+end
+
+NotifyRight:AddLabel("Each button changes the position and syncs the Interface dropdown")
+
+for _, Name in ipairs(UiLibrary.NotifyPositions) do
+	NotifyRight:AddButton({
+		Name = Name,
+		Callback = function()
+			PickPosition(Name)
+		end
+	})
+end
+
+NotifyRight:AddButton({
+	Name = "Cycle",
+	Callback = function()
+		local Index = table.find(UiLibrary.NotifyPositions, UiLibrary.NotifyPosition) or 0
+		PickPosition(UiLibrary.NotifyPositions[(Index % #UiLibrary.NotifyPositions) + 1])
+	end
+})
+
+local ApiLeft = ApiSub:CreateSection("Controls", "left", "sliders-horizontal")
+local ApiRight = ApiSub:CreateSection("Window & Theme", "right", "palette")
+
+local TestToggle = ApiLeft:AddToggle({
+	Name = "Test Toggle",
+	Flag = "Test_Toggle",
+	Default = false,
+	Callback = function(Value)
+		print("Test Toggle:", Value)
+	end
+})
+
+ApiLeft:AddButton({
+	Name = "Toggle On",
+	Callback = function()
+		TestToggle.Set(true)
+	end
+}):AddButton({
+	Name = "Toggle Off",
+	Callback = function()
+		TestToggle.Set(false)
+	end
+})
+
+local TestSlider = ApiLeft:AddSlider({
+	Name = "Test Slider",
+	Flag = "Test_Slider",
+	Min = 0,
+	Max = 100,
+	Step = 5,
+	Default = 25
+})
+
+ApiLeft:AddButton({
+	Name = "Slider = 75",
+	Callback = function()
+		TestSlider.Set(75)
+	end
+}):AddButton({
+	Name = "Slider = 0",
+	Callback = function()
+		TestSlider.Set(0)
+	end
+})
+
+local TestDropdown = ApiLeft:AddDropdown({
+	Name = "Test Dropdown",
+	Flag = "Test_Dropdown",
+	Options = { "One", "Two", "Three" },
+	Default = "One"
+})
+
+ApiLeft:AddButton({
+	Name = "New options",
+	Callback = function()
+		TestDropdown.Refresh({ "Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta", "Theta" })
+	end
+}):AddButton({
+	Name = "Select Beta",
+	Callback = function()
+		TestDropdown.Set("Beta")
+	end
+})
+
+local TestPicker = ApiLeft:AddColorpicker({
+	Name = "Test Color",
+	Flag = "Test_Color",
+	Default = Color3.fromRGB(255, 255, 255)
+})
+
+ApiLeft:AddButton({
+	Name = "Random color",
+	Callback = function()
+		TestPicker.Set(Color3.fromHSV(math.random(), 0.7, 1))
+	end
+})
+
+ApiLeft:AddTextbox({
+	Name = "Test Textbox",
+	Flag = "Test_Textbox",
+	Placeholder = "type here",
+	Callback = function(Text)
+		UiLibrary:Notify("Textbox", "Value: " .. Text, 2)
+	end
+})
+
+ApiLeft:AddKeybind({
+	Name = "Test Keybind",
+	Flag = "Test_Keybind",
+	Default = Enum.KeyCode.G,
+	Mode = "Toggle",
+	Callback = function(State)
+		UiLibrary:Notify("Keybind", "State: " .. tostring(State), 2)
+	end
+})
+
+ApiRight:AddButton({
+	Name = "Accent Red",
+	Callback = function()
+		Window:SetAccent(Color3.fromRGB(255, 107, 117))
+	end
+}):AddButton({
+	Name = "Accent Purple",
+	Callback = function()
+		Window:SetAccent(Color3.fromRGB(183, 156, 255))
+	end
+})
+
+ApiRight:AddButton({
+	Name = "Animations Off",
+	Callback = function()
+		UiLibrary:SetAnimations(false)
+	end
+}):AddButton({
+	Name = "Animations On",
+	Callback = function()
+		UiLibrary:SetAnimations(true)
+	end
+})
+
+ApiRight:AddButton({
+	Name = "Speed 2x",
+	Callback = function()
+		UiLibrary:SetAnimationSpeed(2)
+	end
+}):AddButton({
+	Name = "Speed 1x",
+	Callback = function()
+		UiLibrary:SetAnimationSpeed(1)
+	end
+})
+
+ApiRight:AddButton({
+	Name = "Transparency 0.3",
+	Callback = function()
+		Window:SetTransparency(0.3)
+	end
+}):AddButton({
+	Name = "Transparency 0",
+	Callback = function()
+		Window:SetTransparency(0)
+	end
+})
+
+ApiRight:AddButton({
+	Name = "Hide UI for 2s",
+	Callback = function()
+		Window:SetVisible(false)
+
+		task.delay(2, function()
+			Window:SetVisible(true)
+		end)
+	end
+})
+
+ApiRight:AddButton({
+	Name = "Count flags",
+	Callback = function()
+		local Count = 0
+
+		for _ in pairs(UiLibrary.Flags) do
+			Count += 1
+		end
+
+		UiLibrary:Notify("Flags", Count .. " flags registered", 3)
+	end
+})
+
+local IconNames = IconSub:CreateSection("Name formats", "left", "type")
+local IconAssets = IconSub:CreateSection("Asset formats", "right", "box")
+
+IconNames:AddLabel("Plain lucide name")
+IconNames:AddLabel("Section below uses \"lucide:heart\"")
+
+IconSub:CreateSection("lucide: prefix", "left", "lucide:heart")
+IconSub:CreateSection("Spaced / capitalised", "left", "Arrow Up")
+IconSub:CreateSection("Missing icon (text only)", "left", "not-a-real-icon")
+
+IconAssets:AddLabel("Replace the ids below with your own to test them")
+
+IconSub:CreateSection("rbxassetid string", "right", "rbxassetid://6031094678")
+IconSub:CreateSection("Numeric id", "right", 6031094678)
+
+local PlainSec = PlainSub:CreateSection("Text only", "left")
+
+PlainSec:AddLabel("This subtab has no icon and still sizes correctly")
+PlainSec:AddToggle({
+	Name = "Plain toggle",
+	Flag = "Plain_Toggle"
+})
+
+local LongSec = LongSub:CreateSection("Wide subtab", "left", "ruler")
+
+LongSec:AddLabel("The subtab bar scrolls when the tabs do not fit: drag it or use the mouse wheel")
+
+for i = 1, 14 do
+	LongSec:AddToggle({
+		Name = "Scroll test " .. i,
+		Flag = "Scroll_" .. i
+	})
+end
+
+local SettingsTab = Window:CreateTab("Settings", "settings")
+
+UiLibrary:SetConfigTab(SettingsTab, {
+	AutoLoad = true,
+	AutoLoadTheme = true,
+	ConfigIcon = "save",
+	InterfaceIcon = "layout-grid"
+})
+
+UiLibrary:Notify("UiLibrary", "Example loaded", 3)
