@@ -1224,13 +1224,13 @@ function UiLibrary.Notify(a, b, c, d)
 	NotifyOrder += 1
 
 	local PadX, PadY, BarH = 14, 12, 3
-	local TextX = 18
+	local TextX = 16
 	local InnerW = NotifyWidth - TextX - PadX
-	local TitleH = Title ~= "" and 18 or 0
-	local GapH = (Title ~= "" and Text ~= "") and 3 or 0
+	local TitleH = Title ~= "" and 17 or 0
+	local GapH = (Title ~= "" and Text ~= "") and 2 or 0
 	local TextH = Text ~= "" and MeasureText(Text, 14, Fonts.Regular, InnerW) or 0
 	local Extra = Persistent and PadY or (8 + BarH + 10)
-	local Height = math.max(PadY + TitleH + GapH + TextH + Extra, 44)
+	local Height = math.max(PadY + TitleH + GapH + TextH + Extra, 46)
 	local P = Placement()
 
 	local Wrapper = Create("Frame", {
@@ -1245,22 +1245,13 @@ function UiLibrary.Notify(a, b, c, d)
 		AnchorPoint = P.Anchor,
 		Position = P.Hidden,
 		Size = UDim2.new(1, 0, 0, Height),
-		BackgroundColor3 = Colors.Popup,
-		BackgroundTransparency = 0,
+		BackgroundColor3 = Colors.Card,
+		BackgroundTransparency = Alpha.Window,
 		BorderSizePixel = 0,
 		GroupTransparency = 1
 	}, Wrapper)
 
-	Corner(Card, 10)
-
-	local Strip = Create("Frame", {
-		Position = UDim2.fromOffset(7, 10),
-		Size = UDim2.new(0, 3, 1, -20),
-		BackgroundColor3 = Colors.Accent,
-		BorderSizePixel = 0
-	}, Card)
-
-	Round(Strip)
+	Corner(Card, 8)
 
 	if Title ~= "" then
 		local TitleLabel = Label(Card, Title, 15, Colors.Text, Fonts.Medium)
@@ -1283,8 +1274,7 @@ function UiLibrary.Notify(a, b, c, d)
 		local Track = Create("Frame", {
 			Position = UDim2.new(0, TextX, 0, Height - 10 - BarH),
 			Size = UDim2.new(1, -(TextX + PadX), 0, BarH),
-			BackgroundColor3 = Colors.Row,
-			BackgroundTransparency = Alpha.Row,
+			BackgroundColor3 = Colors.SliderTrack,
 			BorderSizePixel = 0
 		}, Card)
 
