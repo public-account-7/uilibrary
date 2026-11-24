@@ -16,7 +16,8 @@ local Window = Library:CreateWindow({
     Width = 600,
     Height = 450,
     ToggleKey = Enum.KeyCode.RightShift,
-    AutoResize = true
+    AutoResize = true,
+    MobileButton = true
 })
 
 --[[
@@ -25,6 +26,7 @@ Width = <number> - Window width.
 Height = <number> - Window height.
 ToggleKey = <keycode> - Key used to show or hide the UI.
 AutoResize = <bool> - Automatically fit the window to the screen size.
+MobileButton = <bool> - Show a draggable open/hide button on touch-enabled devices. Default is false.
 ]]
 ```
 
@@ -60,6 +62,8 @@ Side = <string> - "left" or "right".
 Icon = <string> - Optional Lucide icon name (third argument).
 ]]
 ```
+
+The side defaults to `"left"`. Sections stay in their chosen half-width column, even when the other column is empty; they never span both columns.
 
 ## Creating a Button
 
@@ -458,7 +462,7 @@ Window:RefreshTheme()
 Window:Close()
 ```
 
-Use `Window:Close()` to close and destroy the UI. Use `Window:Destroy()` to destroy it immediately.
+Use the `-` button beside `X` to hide the window without destroying it. Clicking `X` opens a confirmation dialog; confirming closes and destroys the UI, while `Window:Close()` closes it directly. The mobile menu toggle animates out with the close transition. Use `Window:Destroy()` to destroy it immediately.
 
 ### Watermark
 
