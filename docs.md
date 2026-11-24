@@ -460,6 +460,33 @@ Window:Close()
 
 Use `Window:Close()` to close and destroy the UI. Use `Window:Destroy()` to destroy it immediately.
 
+### Watermark
+
+The watermark starts hidden. Set its text, then enable it:
+
+```lua
+Window:SetWatermark("My Script")
+Window:SetWatermarkVisibility(true)
+```
+
+Call `Window:SetWatermarkVisibility(false)` to hide it. The watermark stays visible when the main window is toggled or hidden, and can be dragged while the main window is open. Its background and gradient follow the window background color; change its text color in **Interface > Controls > Watermark Text**.
+
+### Unload Callback
+
+Register a callback to run when the close button is clicked or `Window:Close()` is called:
+
+```lua
+Window:OnUnload(function()
+    print("Window closing")
+end)
+```
+
+Callbacks run once when closing starts, before the close animation. Callback errors are warned and do not interrupt closing.
+
+### Search
+
+The sidebar search matches tab, subtab, section, control names, and control flags. Search selects a subtab with matching content and hides empty or nonmatching tabs. Tab and subtab buttons disappear immediately when they do not match; controls and sections keep their hide animation. Clearing the search restores the current valid subtab or selects the first populated one.
+
 ## Global UI Settings
 
 ```lua
