@@ -9,7 +9,8 @@ local Window = UiLibrary:CreateWindow({
 	Title = "UiLibrary Example",
 	Width = 720,
 	Height = 460,
-	ToggleKey = Enum.KeyCode.RightShift
+	ToggleKey = Enum.KeyCode.RightShift,
+	MobileButton = true
 })
 
 local Main = Window:CreateTab("Main", "house")
