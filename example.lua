@@ -723,14 +723,13 @@ IconAssets:AddLabel("Replace the ids below with your own to test them")
 IconSub:CreateSection("rbxassetid string", "right", "rbxassetid://6031094678")
 IconSub:CreateSection("Numeric id", "right", 6031094678)
 
-local PlainSec = PlainSub:CreateSection("Text only", "left")
+local PlainSec = PlainSub:CreateSection("Text only")
 
 PlainSec:AddLabel("This subtab has no icon and still sizes correctly")
 PlainSec:AddToggle({
 	Name = "Plain toggle",
 	Flag = "Plain_Toggle"
 })
-
 local LongSec = LongSub:CreateSection("Wide subtab", "left", "ruler")
 
 LongSec:AddLabel("The subtab bar scrolls when the tabs do not fit: drag it or use the mouse wheel")
